@@ -6,7 +6,7 @@ The Plant Health Gauge is a two-device system designed to monitor plant conditio
 
 The sensor device is placed directly in the plant pot to monitor soil and light conditions, while the display device presents a summarized plant health score using a stepper-motor-driven gauge needle, LEDs, and a button. This separation allows sensing and display to be optimized for their respective physical contexts.
 
-![Overall system sketch](sketches_0119\overall_system.jpg)
+![Overall system sketch](sketches_0119/overall_system.jpg)
 
 
 
@@ -36,7 +36,7 @@ The sensor device is a compact, battery-powered unit designed to be inserted int
 - **Power:** Battery holder for coin cell or AA battery  
 - **Electronics:** Custom-designed PCB integrating MCU, sensors, LED, button, and power circuitry
 
-![Sensor device sketch](sketches_0119\sensor_device.jpg)
+![Sensor device sketch](sketches_0119/sensor_device.jpg)
 
 
 
@@ -70,7 +70,7 @@ The display device is a standalone tabletop unit that receives data from the sen
 
 A mechanical gauge is intentionally used instead of a screen to provide a glanceable, low-distraction indication of plant health.
 
-![Display device sketch](sketches_0119\display_device.jpg)
+![Display device sketch](sketches_0119/display_device.jpg)
 
 
 
@@ -81,7 +81,7 @@ The sensor device and display device communicate wirelessly using Bluetooth Low 
 - The sensor device acts as a BLE peripheral
 - The display device acts as a BLE central receiver
 
-![Communication diagram](sketches_0119\communication_diagram.jpg)
+![Communication diagram](sketches_0119/communication_diagram.jpg)
 
 
 
@@ -96,7 +96,7 @@ The system processes data in the following sequence:
 5. Display MCU computes an overall plant health score  
 6. Health score drives the stepper motor gauge needle and LED indicators  
 
-![Data flow diagram](sketches_0119\data_flow_diagram.jpg)
+![Data flow diagram](sketches_0119/data_flow_diagram.jpg)
 
 
 
