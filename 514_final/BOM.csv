@@ -1,0 +1,14 @@
+Item,Subsystem,Designator,Part Name,Manufacturer,Part Number,Package / Form Factor,Quantity,Datasheet
+1,Sensor Device,U1,MCU Board with BLE,Seeed Studio,XIAO ESP32C3,Dev board (XIAO form factor),1,Seeed-Studio-XIAO-Series-SOM-Datasheet.pdf
+2,Display Device,U2,MCU Board with BLE,Seeed Studio,XIAO ESP32C3,Dev board (XIAO form factor),1,Seeed-Studio-XIAO-Series-SOM-Datasheet.pdf
+3,Sensor Device,U3,Ambient Light Sensor IC,ROHM,BH1750FVI,IC (commonly on GY-302 breakout),1,BH1750FVI_datasheet.pdf
+4,Sensor Device,U4,Capacitive Soil Moisture Sensor Module,DFRobot,SEN0193,Gravity analog sensor module,1,SEN0193_soil_moisture_datasheet.pdf
+5,Sensor Device,U5,Analog pH Sensor / Meter Kit V2,DFRobot,SEN0161-V2,pH interface module + BNC probe (kit),1,SEN0161-V2_pH_sensor_datasheet.pdf
+6,Display Device,M1,Stepper Motor,Generic,28BYJ-48 (5V),Stepper motor with gearbox,1,28BYJ-48_stepper_motor_datasheet.pdf
+7,Display Device,U6,Stepper Motor Driver IC,Texas Instruments,ULN2003A,DIP-16 / SOIC-16,1,ULN2003A_TI_datasheet.pdf
+8,Sensor Device,S1,Push Button (Momentary),Generic,TBD,6x6mm tactile switch (TH or SMD),1,N/A
+9,Display Device,S2,Push Button (Momentary),Generic,TBD,6x6mm tactile switch (TH or SMD),1,N/A
+10,Sensor Device,D1,Indicator LED,Generic,TBD,3mm THT or 0805 SMD LED,1,N/A
+11,Display Device,D2,Indicator LED,Generic,TBD,3mm THT or 0805 SMD LED,1,N/A
+12,Sensor Device,BT1,Battery + Holder,Generic,TBD,AA or coin cell battery holder,1,N/A
+13,Display Device,BT2,Battery + Holder,Generic,TBD,LiPo 3.7V or AA battery holder,1,N/A
