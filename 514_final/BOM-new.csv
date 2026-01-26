@@ -1,0 +1,22 @@
+Item,Subsystem,Designator,Part Name,Manufacturer,Part Number,Package / Form Factor,Quantity,Datasheet
+1,Sensor Device,U1,MCU Board with BLE,Seeed Studio,XIAO ESP32C3,Dev board (XIAO form factor),1,Seeed-Studio-XIAO-ESP32C3-datasheet.pdf
+2,Display Device,U2,MCU Board with BLE,Seeed Studio,XIAO ESP32C3,Dev board (XIAO form factor),1,Seeed-Studio-XIAO-ESP32C3-datasheet.pdf
+3,Sensor Device,J1,Capacitive Soil Moisture Sensor Module,DFRobot,SEN0193,Gravity analog sensor module (3-pin),1,SEN0193_soil_moisture_datasheet.pdf
+4,Sensor Device,J2,Analog pH Sensor / Meter Kit V2,DFRobot,SEN0161-V2,pH interface module + BNC probe (kit),1,SEN0161-V2_pH_sensor_datasheet.pdf
+5,Sensor Device,J3,Ambient Light Sensor Module (I2C),ROHM,BH1750FVI,Module / breakout (4-pin I2C),1,BH1750FVI_datasheet.pdf
+6,Display Device,U3,Stepper Motor Driver IC,Texas Instruments,ULN2003A,DIP-16 / SOIC-16,1,ULN2003A_TI_datasheet.pdf
+7,Display Device,M1,Stepper Motor Gauge,Generic,28BYJ-48 (5V),Unipolar stepper motor (5-wire),1,28BYJ-48_stepper_motor_datasheet.pdf
+8,Sensor Device,D1,Status Indicator LED,Generic,TBD,3mm THT or 0603/0805 SMD LED,1,N/A
+9,Display Device,D2,Status Indicator LED,Generic,TBD,3mm THT or 0603/0805 SMD LED,1,N/A
+10,Sensor Device,R1,LED Series Resistor,Generic,330R,0603 (or 0805),1,N/A
+11,Display Device,R2,LED Series Resistor,Generic,330R,0603 (or 0805),1,N/A
+12,Sensor Device,R3,I2C Pull-up Resistor (SDA),Generic,4.7k,0603 (or 0805),1,N/A
+13,Sensor Device,R4,I2C Pull-up Resistor (SCL),Generic,4.7k,0603 (or 0805),1,N/A
+14,Sensor Device,SW1,Push Button (Momentary),Generic,TBD,6x6mm tactile switch (TH or SMD),1,N/A
+15,Display Device,SW2,Push Button (Momentary),Generic,TBD,6x6mm tactile switch (TH or SMD),1,N/A
+16,Sensor Device,C1,Decoupling Capacitor,Generic,0.1uF,0603 (or 0805),1,N/A
+17,Sensor Device,C2,Bulk Capacitor,Generic,10uF,0805 (or 1206),1,N/A
+18,Display Device,C3,Decoupling Capacitor,Generic,0.1uF,0603 (or 0805),1,N/A
+19,Display Device,C4,Bulk Capacitor,Generic,10uF,0805 (or 1206),1,N/A
+20,Sensor Device,BT1,Battery + Holder,Generic,TBD,3.3V supply source (LiPo/AA + regulator assumed),1,N/A
+21,Display Device,BT2,Battery + Holder,Generic,TBD,3.3V supply source (LiPo/AA + regulator assumed),1,N/A
