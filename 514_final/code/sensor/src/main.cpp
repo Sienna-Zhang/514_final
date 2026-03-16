@@ -1,142 +1,227 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include <BH1750.h>
-#include <NimBLEDevice.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
 
-// -------- Pin mapping (from your schematic) --------
-static const int PIN_I2C_SDA = 4;   // GPIO4_A3_D3_SDA
-static const int PIN_I2C_SCL = 6;   // GPIO6_A5_D5_SCL
-static const int PIN_MOIST_A = 2;   // GPIO2_A1_D1  <- SEN0193 AOUT
-static const int PIN_LED     = 1;   // change if your LED is on another GPIO
+// ===================== Pins =====================
+const int I2C_SDA = 6;
+const int I2C_SCL = 7;
+const int RED_PIN   = 9;
+const int GREEN_PIN = 8;
+const int BLUE_PIN  = 20;
+const int MOISTURE_PIN = 2;
 
-// -------- Moisture calibration (YOU SHOULD CALIBRATE) --------
-// Read ADC when sensor is in water-saturated soil (wet) and in air (dry).
-// Capacitive sensors often: dry ADC higher, wet ADC lower. If yours is opposite, swap.
-static const int MOIST_WET_ADC = 1200;
-static const int MOIST_DRY_ADC = 3200;
+// ===================== BLE =====================
+#define SERVICE_UUID        "12345678-1234-1234-1234-123456789abc"
+#define CHARACTERISTIC_UUID "abcd1234-ab12-ab12-ab12-abcdef123456"
 
-// -------- Health weighting --------
-static const float W_MOIST = 0.60f;
-static const float W_LIGHT = 0.40f;
+BLECharacteristic *pCharacteristic;
+bool deviceConnected = false;
 
-// -------- BLE UUIDs --------
-static const char* BLE_DEVICE_NAME = "PlantSensor";
-static const char* SVC_UUID  = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
-static const char* CH_UUID   = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Notify: uint8 score
-
-BH1750 lightMeter;
-
-NimBLEServer* pServer = nullptr;
-NimBLECharacteristic* pCharScore = nullptr;
-
-static uint8_t lastScore = 255;
-
-static float clamp01(float x) {
-  if (x < 0.0f) return 0.0f;
-  if (x > 1.0f) return 1.0f;
-  return x;
-}
-
-static float map01(int v, int inMin, int inMax) {
-  if (inMax == inMin) return 0.0f;
-  float t = (float)(v - inMin) / (float)(inMax - inMin);
-  return clamp01(t);
-}
-
-// Light factor: ramp up -> optimal -> slightly penalize too-bright
-static float lightFactorFromLux(float lux) {
-  // 0 at <=50 lux, 1 at 300 lux
-  if (lux <= 50.0f) return 0.0f;
-  if (lux < 300.0f) return (lux - 50.0f) / (300.0f - 50.0f);
-
-  // keep 1 between 300 and 1500 lux
-  if (lux <= 1500.0f) return 1.0f;
-
-  // from 1500 to 5000 lux, drop from 1.0 to 0.6
-  if (lux < 5000.0f) {
-    float t = (lux - 1500.0f) / (5000.0f - 1500.0f);
-    return 1.0f - 0.4f * t;
+class ServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) {
+    deviceConnected = true;
+    Serial.println("BLE connected");
   }
-  return 0.6f;
-}
-
-static uint8_t computeHealthScore(float lux, int moistAdc) {
-  // Moist factor: 1 = wet, 0 = dry (assuming dry ADC higher)
-  float moist01 = map01(moistAdc, MOIST_WET_ADC, MOIST_DRY_ADC);
-  float moistFactor = 1.0f - moist01;
-
-  float lightFactor = lightFactorFromLux(lux);
-
-  float score01 = W_MOIST * moistFactor + W_LIGHT * lightFactor;
-  int score = (int)roundf(100.0f * clamp01(score01));
-  if (score < 0) score = 0;
-  if (score > 100) score = 100;
-  return (uint8_t)score;
-}
-
-class ServerCallbacks : public NimBLEServerCallbacks {
-  void onConnect(NimBLEServer* s) override {
-    digitalWrite(PIN_LED, HIGH);
-  }
-  void onDisconnect(NimBLEServer* s) override {
-    digitalWrite(PIN_LED, LOW);
-    NimBLEDevice::startAdvertising();
+  void onDisconnect(BLEServer* pServer) {
+    deviceConnected = false;
+    Serial.println("BLE disconnected");
+    BLEDevice::startAdvertising();
   }
 };
 
-static void setupBLE() {
-  NimBLEDevice::init(BLE_DEVICE_NAME);
-  NimBLEDevice::setPower(ESP_PWR_LVL_P9); // max
+// ===================== LED =====================
+void setLED(bool r, bool g, bool b) {
+  digitalWrite(RED_PIN,   r ? HIGH : LOW);
+  digitalWrite(GREEN_PIN, g ? HIGH : LOW);
+  digitalWrite(BLUE_PIN,  b ? HIGH : LOW);
+}
 
-  pServer = NimBLEDevice::createServer();
+void startupAnimation() {
+  setLED(1,0,0); delay(200);
+  setLED(0,1,0); delay(200);
+  setLED(0,0,1); delay(200);
+  setLED(1,1,0); delay(200);
+  setLED(0,1,1); delay(200);
+  setLED(1,0,1); delay(200);
+  setLED(0,0,0);
+}
+
+// ===================== BH1750 =====================
+uint8_t BH1750_ADDR = 0x23;
+
+bool bh1750WriteCmd(uint8_t cmd) {
+  Wire.beginTransmission(BH1750_ADDR);
+  Wire.write(cmd);
+  return (Wire.endTransmission() == 0);
+}
+
+bool bh1750Begin() {
+  Wire.begin(I2C_SDA, I2C_SCL);
+  delay(50);
+  if (!bh1750WriteCmd(0x01)) return false;
+  delay(10);
+  if (!bh1750WriteCmd(0x07)) return false;
+  delay(10);
+  if (!bh1750WriteCmd(0x10)) return false;
+  delay(180);
+  return true;
+}
+
+float readBH1750Lux() {
+  Wire.requestFrom(BH1750_ADDR, (uint8_t)2);
+  if (Wire.available() == 2) {
+    uint16_t raw = (Wire.read() << 8) | Wire.read();
+    return raw / 1.2f;
+  }
+  return -1.0f;
+}
+
+bool tryBH1750Addresses() {
+  BH1750_ADDR = 0x23;
+  if (bh1750Begin()) { Serial.println("BH1750 at 0x23"); return true; }
+  BH1750_ADDR = 0x5C;
+  if (bh1750Begin()) { Serial.println("BH1750 at 0x5C"); return true; }
+  return false;
+}
+
+// ===================== 滑动平均滤波 =====================
+#define FILTER_SIZE 10
+int moistureBuffer[FILTER_SIZE] = {0};
+float luxBuffer[FILTER_SIZE] = {0};
+int filterIndex = 0;
+bool filterFull = false;
+
+void updateFilter(int moistureRaw, float lux) {
+  moistureBuffer[filterIndex] = moistureRaw;
+  luxBuffer[filterIndex] = lux;
+  filterIndex = (filterIndex + 1) % FILTER_SIZE;
+  if (filterIndex == 0) filterFull = true;
+}
+
+int getFilteredMoisture() {
+  int count = filterFull ? FILTER_SIZE : filterIndex;
+  if (count == 0) return 0;
+  long sum = 0;
+  for (int i = 0; i < count; i++) sum += moistureBuffer[i];
+  return sum / count;
+}
+
+float getFilteredLux() {
+  int count = filterFull ? FILTER_SIZE : filterIndex;
+  if (count == 0) return 0;
+  float sum = 0;
+  for (int i = 0; i < count; i++) sum += luxBuffer[i];
+  return sum / count;
+}
+
+// ===================== 数值转换 =====================
+int moistureToPercent(int raw) {
+  int pct = map(raw, 3450, 2200, 0, 100);
+  return constrain(pct, 0, 100);
+}
+
+int luxToPercent(float lux) {
+  return constrain((int)(lux / 10.0f), 0, 100);
+}
+
+int calcHealthScore(int moisturePct, int lightPct) {
+  int mScore;
+  if (moisturePct >= 60 && moisturePct <= 80) {
+    mScore = 100;
+  } else if (moisturePct < 60) {
+    mScore = map(moisturePct, 0, 60, 0, 100);
+  } else {
+    mScore = map(moisturePct, 80, 100, 100, 0);
+  }
+
+  int lScore;
+  if (lightPct >= 40 && lightPct <= 60) {
+    lScore = 100;
+  } else if (lightPct < 40) {
+    lScore = map(lightPct, 0, 40, 0, 100);
+  } else {
+    lScore = map(lightPct, 60, 100, 100, 0);
+  }
+
+  return (mScore + lScore) / 2;
+}
+
+// ===================== Globals =====================
+bool bh1750OK = false;
+unsigned long lastReadTime = 0;
+unsigned long lastSendTime = 0;
+
+// ===================== Setup =====================
+void setup() {
+  Serial.begin(115200);
+  delay(500);
+
+  pinMode(RED_PIN, OUTPUT);
+  pinMode(GREEN_PIN, OUTPUT);
+  pinMode(BLUE_PIN, OUTPUT);
+  setLED(0,0,0);
+
+  startupAnimation();
+  setLED(0, 1, 0); // 绿色常亮表示正常运行
+
+  pinMode(MOISTURE_PIN, INPUT);
+
+  bh1750OK = tryBH1750Addresses();
+  if (!bh1750OK) Serial.println("BH1750 FAILED");
+
+  // BLE初始化
+  BLEDevice::init("PlantSensor");
+  BLEServer *pServer = BLEDevice::createServer();
   pServer->setCallbacks(new ServerCallbacks());
 
-  NimBLEService* svc = pServer->createService(SVC_UUID);
-
-  pCharScore = svc->createCharacteristic(
-    CH_UUID,
-    NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+  pCharacteristic = pService->createCharacteristic(
+    CHARACTERISTIC_UUID,
+    BLECharacteristic::PROPERTY_NOTIFY
   );
+  pCharacteristic->addDescriptor(new BLE2902());
+  pService->start();
 
-  uint8_t initVal = 0;
-  pCharScore->setValue(&initVal, 1);
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->start();
 
-  svc->start();
-
-  NimBLEAdvertising* adv = NimBLEDevice::getAdvertising();
-  adv->addServiceUUID(SVC_UUID);
-  adv->setScanResponse(true);
-  adv->start();
+  Serial.println("BLE advertising started");
 }
 
-void setup() {
-  pinMode(PIN_LED, OUTPUT);
-  digitalWrite(PIN_LED, LOW);
-
-  analogReadResolution(12); // ESP32 ADC default
-  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
-
-  // BH1750
-  if (!lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE)) {
-    // still continue; you can debug with Serial if needed
-  }
-
-  setupBLE();
-}
-
+// ===================== Loop =====================
 void loop() {
-  // Read sensors
-  float lux = lightMeter.readLightLevel();
-  int moistAdc = analogRead(PIN_MOIST_A);
+  // 每500ms读一次传感器更新滤波器
+  if (millis() - lastReadTime >= 500) {
+    lastReadTime = millis();
 
-  uint8_t score = computeHealthScore(lux, moistAdc);
+    float lux = bh1750OK ? readBH1750Lux() : 0;
+    int moistureRaw = analogRead(MOISTURE_PIN);
+    updateFilter(moistureRaw, lux);
 
-  // Notify if changed or every cycle
-  if (score != lastScore) {
-    pCharScore->setValue(&score, 1);
-    pCharScore->notify();
-    lastScore = score;
+    Serial.print("Lux: "); Serial.print(lux);
+    Serial.print(" | Moisture raw: "); Serial.println(moistureRaw);
   }
 
-  delay(1200);
+  // 每2秒发送一次BLE数据
+  if (millis() - lastSendTime >= 2000 && deviceConnected) {
+    lastSendTime = millis();
+
+    int moistureRaw = getFilteredMoisture();
+    float lux = getFilteredLux();
+
+    int moisturePct = moistureToPercent(moistureRaw);
+    int lightPct = luxToPercent(lux);
+    int healthScore = calcHealthScore(moisturePct, lightPct);
+
+    char buf[32];
+    snprintf(buf, sizeof(buf), "M:%d,L:%d,H:%d", moisturePct, lightPct, healthScore);
+    pCharacteristic->setValue(buf);
+    pCharacteristic->notify();
+
+    Serial.print("Sent: "); Serial.println(buf);
+  }
 }
